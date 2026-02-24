@@ -15,23 +15,23 @@ in the input to DGaussZ by 1/sqrt(2*pi). The following code is used to compare s
 '''
 
 def nome(s):
-'''
-Compute the nome q = exp(-1*pi/s**2)
+    '''
+    Compute the nome q = exp(-1*pi/s**2)
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     return exp(-1*pi/s**2)
     
 def theta_E7(s):
-'''
-Compute the theta series of E7
+    '''
+    Compute the theta series of E7
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
     theta2 = jtheta(2,0,q**4)
@@ -39,14 +39,14 @@ Compute the theta series of E7
     return theta_E7
 
 def coset_prob_E7(s):
-'''
-Compute the probability that a vector lies in a 
-coset of E7 represented by a codeword of weight w=0,3,4,7
+    '''
+    Compute the probability that a vector lies in a 
+    coset of E7 represented by a codeword of weight w=0,3,4,7
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a list of real values
-'''
+    :returns: a list of real values
+    '''
     table=[]
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
@@ -82,14 +82,14 @@ def sample_E7(s, weights_prob):
     w = random.choices([0,3,4,7], weights=weights_prob)
     if w[0] == 3:
         c = random.sample(weight_3, k=1)
-        x = np.array([2*DGaussZ(sigma=s/(2*sqrt(2*pi)), c=c[0][i]/2)() for i in range(7)])
+        x = np.array([2*DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))), c=c[0][i]/2)() for i in range(7)])
     elif w[0] == 4:
         c = random.sample(weight_4, k=1)
-        x = np.array([2*DGaussZ(sigma=s/(2*sqrt(2*pi)), c=c[0][i]/2)() for i in range(7)])
+        x = np.array([2*DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))), c=c[0][i]/2)() for i in range(7)])
     elif w[0] == 0: 
-        x = np.array([2*DGaussZ(sigma=s/(2*sqrt(2*pi)))() for i in range(7)])
+        x = np.array([2*DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))))() for i in range(7)])
     elif w[0] == 7:
-        x = np.array([2*DGaussZ(sigma=s/(2*sqrt(2*pi)),c=1/2)() for i in range(7)])
+        x = np.array([2*DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))),c=1/2)() for i in range(7)])
     return x
 
 '''

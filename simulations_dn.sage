@@ -15,24 +15,24 @@ in the input to DGaussZ by 1/sqrt(2*pi). The following code is used to compare s
 '''
 
 def nome(s):
-'''
-Compute the nome q = exp(-1*pi/s**2)
+    '''
+    Compute the nome q = exp(-1*pi/s**2)
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     return exp(-1*pi/s**2)
 
 def theta_dn(n,s):
-'''
-Compute the theta series of Dn
+    '''
+    Compute the theta series of Dn
 
-:param n: lattice dimension
-:param s: sampling width
+    :param n: lattice dimension
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
     theta2 = jtheta(2,0,q**4)
@@ -42,15 +42,15 @@ Compute the theta series of Dn
     return theta_series
 
 def coset_prob_dn(n, s):
-'''
-Compute the probability that a vector lies in a 
-coset of Dn represented by a codeword of weight w=1,...,n/2
+    '''
+    Compute the probability that a vector lies in a 
+    coset of Dn represented by a codeword of weight w=1,...,n/2
 
-:param n: lattice dimension
-:param s: sampling width
+    :param n: lattice dimension
+    :param s: sampling width
 
-:returns: a list of real values
-'''
+    :returns: a list of real values
+    '''
     table=[]
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
@@ -75,10 +75,10 @@ def sample_dn(n, s, indices, weights_prob):
     subset = random.sample(indices, k=2*m[0])
     x = np.empty(n)
     for j in range(len(subset)):
-        x[subset[j]] = 2 * DGaussZ(sigma=s/(2*sqrt(2*pi)),c=1/2)()
+        x[subset[j]] = 2 * DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))),c=1/2)()
     not_subset = list(set(indices)-set(subset))
     for j in range(len(not_subset)):
-        x[not_subset[j]] = 2 * DGaussZ(sigma=s/(2*sqrt(2*pi)))()
+        x[not_subset[j]] = 2 * DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))))()
     return x
 
 def espitau_dn(n, s):
@@ -90,10 +90,10 @@ def espitau_dn(n, s):
     
     :returns: a lattice vector
     '''
-    x = np.empty(n)
+    x = np.zeros(n)
     x[0] += 1
     while (sum(x) % 2) != 0:
-        x = np.array([DGaussZ(sigma=s/(sqrt(2*pi)))() for i in range(n)])
+        x = np.array([DGaussZ(sigma=float(s)/(float(sqrt(2*pi))))() for i in range(n)])
     return x
 
 '''

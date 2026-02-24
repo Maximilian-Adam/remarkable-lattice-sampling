@@ -15,23 +15,23 @@ in the input to DGaussZ by 1/sqrt(2*pi). The following code is used to compare s
 '''
 
 def nome(s):
-'''
-Compute the nome q = exp(-1*pi/s**2)
+    '''
+    Compute the nome q = exp(-1*pi/s**2)
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     return exp(-1*pi/s**2)
 
 def theta_E8(s):
-'''
-Compute the theta series of E8
+    '''
+    Compute the theta series of E8
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
     theta2 = jtheta(2,0,q**4)
@@ -39,14 +39,14 @@ Compute the theta series of E8
     return theta_E8
 
 def coset_prob_E8(s):
-'''
-Compute the probability that a vector lies in a 
-coset of E8 represented by a codeword of weight w=0,4,8
+    '''
+    Compute the probability that a vector lies in a 
+    coset of E8 represented by a codeword of weight w=0,4,8
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a list of real values
-'''
+    :returns: a list of real values
+    '''
     table=[]
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
@@ -79,11 +79,11 @@ def sample_E8(s, weights_prob):
     w = random.choices([0,4,8], weights=weights_prob)
     if w[0] == 4:
         c = random.sample(weight_4, k=1)
-        x = np.array([2*DGaussZ(sigma=s/(2*sqrt(2*pi)), c=c[0][i]/2)() for i in range(8)])
+        x = np.array([2*DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))), c=c[0][i]/2)() for i in range(8)])
     elif w[0] == 0: 
-        x = np.array([2*DGaussZ(sigma=s/(2*sqrt(2*pi)))() for i in range(8)])
+        x = np.array([2*DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))))() for i in range(8)])
     elif w[0] == 8:
-        x = np.array([2*DGaussZ(sigma=s/(2*sqrt(2*pi)),c=1/2)() for i in range(8)])
+        x = np.array([2*DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))),c=1/2)() for i in range(8)])
     return x
 
 def rho_vec(v, s):
@@ -110,10 +110,10 @@ def espitau_dn_shift(n, s, t):
     
     :returns: a lattice vector
     '''
-    x = np.empty(n)
+    x = np.zeros(n)
     x[0] += 1
     while (sum(x) % 2) != 0:
-        x = np.array([DGaussZ(sigma=s/(sqrt(2*pi)), c=t[i])() for i in range(n)])
+        x = np.array([DGaussZ(sigma=float(s)/(float(sqrt(2*pi))), c=float(t[i]))() for i in range(n)])
     return x
 
 def espitau_E8(s, s_prime):

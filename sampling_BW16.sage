@@ -1,11 +1,12 @@
 from sage.stats.distributions.discrete_gaussian_integer import         DiscreteGaussianDistributionIntegerSampler as DGaussZ
 
 # import Python packages
-from mpmath import sqrt, jtheta, exp
+from mpmath import mpf, sqrt, jtheta, exp
 from math import comb, pi, floor
 import numpy as np
 import random 
 import time
+import itertools
 
 '''
 Note:
@@ -15,35 +16,35 @@ in the input to DGaussZ by 1/sqrt(2*pi). The following code is used to compare s
 '''
 
 def nome(s):
-'''
-Compute the nome q = exp(-1*pi/s**2)
+    '''
+    Compute the nome q = exp(-1*pi/s**2)
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     return exp(-1*pi/s**2)
 
 def scaled_psi_4(s):
-'''
-Compute additional base theta function corresponding 
-to the case ZZ+1/4
+    '''
+    Compute additional base theta function corresponding 
+    to the case ZZ+1/4
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     q=nome(s)**4
     return (1/2)*jtheta(2, 0, q)
 
 def theta_BW16(s):
-'''
-Compute the theta series of BW16
+    '''
+    Compute the theta series of BW16
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
     theta2 = jtheta(2,0,q**4)
@@ -52,14 +53,14 @@ Compute the theta series of BW16
     return theta_series
 
 def coset_prob_BW16(s):
-'''
-Compute the probability that a vector lies in a 
-coset of BW16 represented by a codeword of weight w=0,8,16
+    '''
+    Compute the probability that a vector lies in a 
+    coset of BW16 represented by a codeword of weight w=0,8,16
 
-:param s: sampling width
+    :param s: sampling width
 
-:returns: a list of real values
-'''
+    :returns: a list of real values
+    '''
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
     theta2 = jtheta(2,0,q**4)
@@ -73,14 +74,14 @@ coset of BW16 represented by a codeword of weight w=0,8,16
     return table
 
 def theta_dn(n,s):
-'''
-Compute the theta series of Dn
+    '''
+    Compute the theta series of Dn
 
-:param n: lattice dimension
-:param s: sampling width
+    :param n: lattice dimension
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
     theta2 = jtheta(2,0,q**4)
@@ -90,15 +91,15 @@ Compute the theta series of Dn
     return theta_series
 
 def coset_prob_dn(n, s):
-'''
-Compute the probability that a vector lies in a 
-coset of Dn represented by a codeword of weight w=1,...,n/2
+    '''
+    Compute the probability that a vector lies in a 
+    coset of Dn represented by a codeword of weight w=1,...,n/2
 
-:param n: lattice dimension
-:param s: sampling width
+    :param n: lattice dimension
+    :param s: sampling width
 
-:returns: a list of real values
-'''
+    :returns: a list of real values
+    '''
     table=[]
     q = nome(s)
     theta3 = jtheta(3,0,q**4)
@@ -109,14 +110,14 @@ coset of Dn represented by a codeword of weight w=1,...,n/2
     return table
 
 def weight_enum_e(n, s):
-'''
-Compute even weight enumerator
+    '''
+    Compute even weight enumerator
 
-:param n: lattice dimension
-:param s: sampling width
+    :param n: lattice dimension
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     sum = 0
     theta3 = jtheta(3,0,nome(s)**4)
     theta2 = jtheta(2,0,nome(s)**4)
@@ -125,14 +126,14 @@ Compute even weight enumerator
     return sum
 
 def weight_enum_o(n, s):
-'''
-Compute odd weight enumerator
+    '''
+    Compute odd weight enumerator
 
-:param n: lattice dimension
-:param s: sampling width
+    :param n: lattice dimension
+    :param s: sampling width
 
-:returns: a real value
-'''
+    :returns: a real value
+    '''
     sum = 0
     theta3 = jtheta(3,0,nome(s)**4)
     theta2 = jtheta(2,0,nome(s)**4)
@@ -154,10 +155,10 @@ def sample_dn(n, s):
     subset = random.sample(indices, k=2*m[0])
     x = [None] * n
     for j in range(len(subset)):
-        x[subset[j]] = 2 * DGaussZ(sigma=s/(2*sqrt(2*pi)),c=1/2)()
+        x[subset[j]] = 2 * DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))),c=1/2)()
     not_subset = list(set(indices)-set(subset))
     for j in range(len(not_subset)):
-        x[not_subset[j]] = 2 * DGaussZ(sigma=s/(2*sqrt(2*pi)))()
+        x[not_subset[j]] = 2 * DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))))()
     return x
 
 def sample_dn_special_shift(n, s, t):
@@ -170,10 +171,10 @@ def sample_dn_special_shift(n, s, t):
     :returns: a lattice vector
     '''
     c = list(random.sample(list(codes.ParityCheckCode(GF(2), n-1)), k=1)[0])
-    c_real = [Integer(i) for i in c]
+    c_real = [float(i) for i in c]
     x = [None] * n
     for i in range(n):
-        x[i] = 2 * DGaussZ(sigma=s/(2*sqrt(2*pi)),c=(c_real[i]+t[i])/2)()
+        x[i] = 2 * DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))),c=(c_real[i]+float(t[i]))/2)()
     return x
 
 def sample_dn_bar(n, s):
@@ -200,17 +201,17 @@ def sample_dn_bar(n, s):
     if coin == 'heads':
         subset = random.sample(indices[1:], k=2*m)+[0]
         for j in range(len(subset)):
-            x[subset[j]] = 2 * DGaussZ(sigma=s/(2*sqrt(2*pi)),c=1/2)()
+            x[subset[j]] = 2 * DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))),c=1/2)()
         not_subset = list(set(indices)-set(subset))
         for j in range(len(not_subset)):
-            x[not_subset[j]] = 2 * DGaussZ(sigma=s/(2*sqrt(2*pi)))()
+            x[not_subset[j]] = 2 * DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))))()
     else:
         subset = random.sample(indices[1:], k=2*m-1)
         for j in range(len(subset)):
-            x[subset[j]] = 2 * DGaussZ(sigma=s/(2*sqrt(2*pi)),c=1/2)()
+            x[subset[j]] = 2 * DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))),c=1/2)()
         not_subset = list(set(indices)-set(subset))
         for j in range(len(not_subset)):
-            x[not_subset[j]] = 2 * DGaussZ(sigma=s/(2*sqrt(2*pi)))()
+            x[not_subset[j]] = 2 * DGaussZ(sigma=float(s)/(2*float(sqrt(2*pi))))()
     return x
 
 
@@ -294,10 +295,10 @@ def espitau_dn_shift(n, s, t):
     
     :returns: a lattice vector
     '''
-    x = np.empty(n)
+    x = np.zeros(n)
     x[0] += 1
     while (sum(x) % 2) != 0:
-        x = np.array([DGaussZ(sigma=s/(sqrt(2*pi)), c=t[i])() for i in range(n)])
+        x = np.array([DGaussZ(sigma=float(s)/(float(sqrt(2*pi))), c=float(t[i]))() for i in range(n)])
     return x
 
 def espitau_E8_shift(s,s_prime,shift): 
@@ -342,13 +343,13 @@ B = np.array([[2, 0, 0, 0, 0, 0, 0, 0],
               [1, 0, 0, 1, 1, 0, 1, 0],
               [1, 0, 0, 0, 1, 1, 0, 1]])
 
-RB=np.dot(B,R)
-RB.echelon_form()
+RB=matrix(ZZ, np.dot(B,R).tolist()) # convert to sage matrix
+RB=RB.echelon_form()
 
 # compute the coset representatives for BW8/RBW8
 A = []
 
-for a1, a3, a4, a5, a6, a7 in product(range(2), range(2), range(2), range(4), range(2), range(4)):
+for a1, a3, a4, a5, a6, a7 in itertools.product(range(2), range(2), range(2), range(4), range(2), range(4)):
     rep = a1*B[1,:]+a3*B[3,:]+a4*B[4,:]+a5*B[5,:]+a6*B[6,:]+a7*B[7,:]
     A.append(rep)
 
