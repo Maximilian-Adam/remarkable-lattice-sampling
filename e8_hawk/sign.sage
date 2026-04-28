@@ -21,14 +21,22 @@ load(os.path.join(E8_HAWK_DIR, "material.sage"))
 from sage.all import QQ, ZZ, vector
 
 
-def signature_from_h_and_w(h, w, k=DEFAULT_BLOCKS):
+def signature_from_h_and_w(h, w, k=DEFAULT_BLOCKS, public_material=None):
     if len(h) != len(w):
         raise ValueError("h and w must have the same length")
-    if not in_coset_mod_2e8(w, h, k=k):
-        raise ValueError("w must be congruent to h modulo 2E8^k")
+    if public_material is None:
+        same_coset = in_coset_mod_2e8(w, h, k=k)
+    else:
+        same_coset = public_material_coset_relation(public_material, w, h)
+    if not same_coset:
+        raise ValueError("w must satisfy the public coset relation with h")
     s = vector(QQ, [(QQ(h[i]) - QQ(w[i])) / 2 for i in range(len(h))])
-    if not in_e8_power(s, k):
-        raise ValueError("derived signature vector is not in E8^k")
+    if public_material is None:
+        signature_member = in_e8_power(s, k)
+    else:
+        signature_member = public_material_signature_membership(public_material, s)
+    if not signature_member:
+        raise ValueError("derived signature vector is outside the signature module")
     return s
 
 
@@ -53,8 +61,9 @@ def sign(
     sigma_sign = secret_material_sigma_sign(secret_material)
     sigma_verify = public_material_sigma_verify(public_material)
     public_context = public_material_context(public_material)
+    salt_bytes = public_material_salt_bytes(public_material)
 
-    target = hash_to_target(message, salt=salt, k=k, public_context=public_context)
+    target = hash_to_target(message, salt=salt, k=k, public_context=public_context, salt_bytes=salt_bytes)
     h = target["h"]
     bound = public_material_norm_bound(public_material, k, sigma_verify) if norm_bound is None else QQ(norm_bound)
 
@@ -88,10 +97,12 @@ def sign(
             raise RuntimeError("canonical representative failed sym-break")
         if not public_material_witness_membership(public_material, w):
             raise RuntimeError("canonical representative is outside the public lattice")
+        if not public_material_coset_relation(public_material, w, h):
+            raise RuntimeError("canonical representative does not satisfy the public coset relation")
         if public_material_norm_sq(public_material, w) > bound:
             raise RuntimeError("canonical representative exceeded the norm bound")
 
-        s = signature_from_h_and_w(h, w, k=k)
+        s = signature_from_h_and_w(h, w, k=k, public_material=public_material)
         if not public_material_signature_membership(public_material, s):
             raise RuntimeError("derived signature vector is outside the signature module")
         return {

@@ -43,19 +43,27 @@ def normalize_message(message):
 
 
 def normalize_salt(salt=None, salt_bytes=SALT_BYTES):
+    salt_bytes = int(ZZ(salt_bytes))
+    if salt_bytes <= 0:
+        raise ValueError("salt_bytes must be positive")
     if salt is None:
         return os.urandom(salt_bytes)
+    salt_b = None
     if isinstance(salt, bytes):
-        return salt
-    if isinstance(salt, str):
+        salt_b = salt
+    elif isinstance(salt, str):
         s = salt[2:] if salt.startswith("0x") else salt
         if len(s) % 2 != 0:
             s = "0" + s
         try:
-            return bytes.fromhex(s)
+            salt_b = bytes.fromhex(s)
         except ValueError as exc:
             raise ValueError("salt hex string is invalid") from exc
-    raise ValueError("salt must be None, bytes, or a hex string")
+    else:
+        raise ValueError("salt must be None, bytes, or a hex string")
+    if len(salt_b) != salt_bytes:
+        raise ValueError("salt must be exactly %s bytes" % salt_bytes)
+    return salt_b
 
 
 def normalize_public_context(public_context=b""):
@@ -68,9 +76,16 @@ def normalize_public_context(public_context=b""):
     raise ValueError("public_context must be bytes, str, or None")
 
 
-def build_hash_transcript(message, salt, k=DEFAULT_BLOCKS, public_context=b"", domain=HASH_DOMAIN):
+def build_hash_transcript(
+    message,
+    salt,
+    k=DEFAULT_BLOCKS,
+    public_context=b"",
+    domain=HASH_DOMAIN,
+    salt_bytes=SALT_BYTES,
+):
     msg = normalize_message(message)
-    salt_b = normalize_salt(salt)
+    salt_b = normalize_salt(salt, salt_bytes=salt_bytes)
     ctx = normalize_public_context(public_context)
     return (
         domain
@@ -95,14 +110,22 @@ def shake_256_bits(transcript, bit_count):
     raise RuntimeError("not enough XOF output")
 
 
-def hash_to_target(message, salt=None, k=DEFAULT_BLOCKS, public_context=b"", domain=HASH_DOMAIN):
-    salt_b = normalize_salt(salt)
+def hash_to_target(
+    message,
+    salt=None,
+    k=DEFAULT_BLOCKS,
+    public_context=b"",
+    domain=HASH_DOMAIN,
+    salt_bytes=SALT_BYTES,
+):
+    salt_b = normalize_salt(salt, salt_bytes=salt_bytes)
     transcript = build_hash_transcript(
         message,
         salt_b,
         k=k,
         public_context=public_context,
         domain=domain,
+        salt_bytes=salt_bytes,
     )
     bits = shake_256_bits(transcript, challenge_bit_count(k))
     h = coset_rep_from_bits(bits, k=k)
@@ -113,5 +136,6 @@ def hash_to_target(message, salt=None, k=DEFAULT_BLOCKS, public_context=b"", dom
         "k": ZZ(k),
         "public_context": normalize_public_context(public_context),
         "domain": domain,
+        "salt_bytes": int(ZZ(salt_bytes)),
         "transcript": transcript,
     }

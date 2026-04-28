@@ -33,12 +33,14 @@ def verify(
     k = public_material_k(public_material)
     sigma_verify = public_material_sigma_verify(public_material)
     public_context = public_material_context(public_material)
+    salt_bytes = public_material_salt_bytes(public_material)
     bound = public_material_norm_bound(public_material, k, sigma_verify) if norm_bound is None else QQ(norm_bound)
     target = hash_to_target(
         message,
         salt=signature["salt"],
         k=k,
         public_context=public_context,
+        salt_bytes=salt_bytes,
     )
     h = target["h"]
 
@@ -57,7 +59,7 @@ def verify(
     w = h - 2 * s
     checks["s_in_public_signature_module"] = public_material_signature_membership(public_material, s)
     checks["w_in_public_lattice"] = public_material_witness_membership(public_material, w)
-    checks["same_2e8_coset"] = in_coset_mod_2e8(w, h, k=k)
+    checks["same_public_coset"] = public_material_coset_relation(public_material, w, h)
     checks["symbreak"] = sym_break(w) if checks["w_in_public_lattice"] else False
     w_norm_sq = public_material_norm_sq(public_material, w)
     checks["norm_bound"] = w_norm_sq <= bound

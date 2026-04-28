@@ -14,26 +14,54 @@ except NameError:
 
 load(os.path.join(E8_HAWK_DIR, "params.sage"))
 
-from sage.all import QQ, ZZ, codes, matrix, vector
+from sage.all import QQ, ZZ, matrix, vector
 import itertools
 
 
-# Construction-A model used throughout this project:
+# Unscaled Construction-A model used throughout this project:
 #   E8_CA = RM(1,3) + 2 Z^8.
 #
 # This is the parity model that makes the b=2 cosets explicit. A vector is in
 # this E8 model iff it is integral and its coordinate parities form a codeword
 # in RM(1,3). Half shifts appear when sampling h + 2E8 by the identity
 #   D_{h + 2E8, s} = 2 * D_{E8 + h/2, s/2}.
+#
+# This coordinate system is not the canonical half-integral E8 normalization
+# usually used in lattice references. Widths and norm bounds in this prototype
+# are expressed in these unscaled Construction-A coordinates.
 
-RM13_CODE = codes.BinaryReedMullerCode(1, 3)
-RM13_CODEWORDS = [tuple(ZZ(x) for x in cw) for cw in RM13_CODE]
+PINNED_RM13_CODEWORDS = [
+    (0, 0, 0, 0, 0, 0, 0, 0),
+    (1, 1, 1, 1, 1, 1, 1, 1),
+    (0, 1, 0, 1, 0, 1, 0, 1),
+    (1, 0, 1, 0, 1, 0, 1, 0),
+    (0, 0, 1, 1, 0, 0, 1, 1),
+    (1, 1, 0, 0, 1, 1, 0, 0),
+    (0, 1, 1, 0, 0, 1, 1, 0),
+    (1, 0, 0, 1, 1, 0, 0, 1),
+    (0, 0, 0, 0, 1, 1, 1, 1),
+    (1, 1, 1, 1, 0, 0, 0, 0),
+    (0, 1, 0, 1, 1, 0, 1, 0),
+    (1, 0, 1, 0, 0, 1, 0, 1),
+    (0, 0, 1, 1, 1, 1, 0, 0),
+    (1, 1, 0, 0, 0, 0, 1, 1),
+    (0, 1, 1, 0, 1, 0, 0, 1),
+    (1, 0, 0, 1, 0, 1, 1, 0),
+]
+RM13_CODEWORDS = [tuple(ZZ(x) for x in cw) for cw in PINNED_RM13_CODEWORDS]
 RM13_CODEWORD_SET = set(tuple(int(x) for x in cw) for cw in RM13_CODEWORDS)
 
-_I2 = [vector(ZZ, [2 if i == j else 0 for j in range(E8_BLOCK_DIM)]) for i in range(E8_BLOCK_DIM)]
-_G = RM13_CODE.generator_matrix()
-_GROWS = [vector(ZZ, [ZZ(x) for x in _G.row(i)]) for i in range(_G.nrows())]
-E8_BASIS = matrix(ZZ, _I2 + _GROWS).row_module().basis_matrix()
+PINNED_E8_BASIS_ROWS = [
+    (1, 0, 0, 1, 0, 1, 1, 0),
+    (0, 1, 0, 1, 0, 1, 0, 1),
+    (0, 0, 1, 1, 0, 0, 1, 1),
+    (0, 0, 0, 2, 0, 0, 0, 0),
+    (0, 0, 0, 0, 1, 1, 1, 1),
+    (0, 0, 0, 0, 0, 2, 0, 0),
+    (0, 0, 0, 0, 0, 0, 2, 0),
+    (0, 0, 0, 0, 0, 0, 0, 2),
+]
+E8_BASIS = matrix(ZZ, PINNED_E8_BASIS_ROWS)
 E8_GRAM = E8_BASIS * E8_BASIS.transpose()
 
 

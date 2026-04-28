@@ -31,6 +31,10 @@ def public_material_sigma_verify(public_material):
     return QQ(public_material.get("sigma_verify", SIGMA_VERIFY))
 
 
+def public_material_salt_bytes(public_material):
+    return int(ZZ(public_material.get("salt_bytes", SALT_BYTES)))
+
+
 def public_material_norm_bound(public_material, k=None, sigma_verify=None):
     if "norm_bound_sq" in public_material:
         return QQ(public_material["norm_bound_sq"])
@@ -62,12 +66,23 @@ def public_material_signature_membership(public_material, s):
     return in_e8_power(s, public_material_k(public_material))
 
 
+def public_material_coset_relation(public_material, w, h):
+    if "coset_relation" in public_material:
+        return bool(public_material["coset_relation"](w, h, public_material))
+    return in_coset_mod_2e8(w, h, public_material_k(public_material))
+
+
 def validate_public_material(public_material):
     if public_material is None:
         raise ValueError("public_material is required")
     k = public_material_k(public_material)
     if k <= 0:
         raise ValueError("public_material k must be positive")
+    if public_material_salt_bytes(public_material) <= 0:
+        raise ValueError("public_material salt_bytes must be positive")
+    for key in ("norm_sq", "witness_membership", "signature_membership", "coset_relation"):
+        if key in public_material and not callable(public_material[key]):
+            raise ValueError("public_material %s must be callable" % key)
     if "Q" in public_material:
         q = public_material["Q"]
         dim = e8_dimension(k)
@@ -95,8 +110,9 @@ def secret_material_sigma_sign(secret_material):
 def sample_w_from_secret_material(secret_material, h, k, sigma_sign):
     sampler = secret_material.get("sample_w", secret_material.get("sampler", None))
     if sampler is None:
-        raise ValueError("secret_material must provide sample_w(h, k, sigma_sign)")
-    return sampler(h, k=k, sigma_sign=sigma_sign)
+        raise ValueError("secret_material must provide sample_w(h, k, sigma_sign, rng)")
+    rng = secret_material.get("rng", default_sampler_rng())
+    return sampler(h, k=k, sigma_sign=sigma_sign, rng=rng)
 
 
 def validate_secret_material(secret_material):
@@ -108,8 +124,9 @@ def validate_secret_material(secret_material):
     return True
 
 
-def toy_e8_public_context(k, label=b"toy-e8-public-material-v1"):
-    return label + int(ZZ(k)).to_bytes(4, "big")
+def toy_e8_public_context(k, label=b"toy-e8-public-material-v1", parameter_set=None):
+    param = b"custom" if parameter_set is None else str(parameter_set).encode("ascii")
+    return label + len(param).to_bytes(1, "big") + param + int(ZZ(k)).to_bytes(4, "big")
 
 
 def toy_e8_witness_membership(w, public_material):
@@ -120,47 +137,72 @@ def toy_e8_signature_membership(s, public_material):
     return in_e8_power(s, public_material_k(public_material))
 
 
-def toy_e8_sample_w(h, k, sigma_sign):
-    return sample_candidate_w(h, k=k, sigma_sign=sigma_sign)
+def toy_e8_coset_relation(w, h, public_material):
+    return in_coset_mod_2e8(w, h, public_material_k(public_material))
+
+
+def toy_e8_sample_w(h, k, sigma_sign, rng=None):
+    return sample_candidate_w(h, k=k, sigma_sign=sigma_sign, rng=rng)
 
 
 def make_toy_e8_public_material(
-    k=DEFAULT_BLOCKS,
-    sigma_verify=SIGMA_VERIFY,
+    k=None,
+    sigma_verify=None,
     norm_bound=None,
     public_context=None,
     Q=None,
+    salt_bytes=None,
+    parameter_set=DEFAULT_HAWK_PARAMETER_SET,
 ):
     # This is an adapter fixture, not HAWK KeyGen. It exposes the
     # public data the signing stage needs: dimensions, transcript context,
     # public norm object Q, and membership predicates.
+    params = hawk_parameter_set(parameter_set) if parameter_set is not None else {}
+    if k is None:
+        k = params.get("e8_blocks", DEFAULT_BLOCKS)
+    if sigma_verify is None:
+        sigma_verify = params.get("sigma_verify", SIGMA_VERIFY)
+    if salt_bytes is None:
+        salt_bytes = params.get("salt_bytes", SALT_BYTES)
     k = ZZ(k)
+    salt_bytes = int(ZZ(salt_bytes))
     if public_context is None:
-        public_context = toy_e8_public_context(k)
+        public_context = toy_e8_public_context(k, parameter_set=parameter_set)
     if Q is None:
         Q = identity_matrix(QQ, e8_dimension(k))
+    full_hawk_profile = parameter_set if params and k == params["e8_blocks"] else None
     public_material = {
         "name": "toy-e8-public-material",
         "k": k,
+        "hawk_parameter_set": full_hawk_profile,
+        "hawk_parameter_source": parameter_set,
+        "hawk_degree": params.get("degree", None),
+        "hawk_ambient_dimension": params.get("ambient_dimension", None),
+        "salt_bytes": salt_bytes,
+        "sigma_sign": params.get("sigma_sign", SIGMA_SIGN),
         "sigma_verify": QQ(sigma_verify),
         "norm_bound_sq": norm_bound_sq(k, sigma_verify) if norm_bound is None else QQ(norm_bound),
         "public_context": public_context,
         "Q": matrix(QQ, Q),
         "witness_membership": toy_e8_witness_membership,
         "signature_membership": toy_e8_signature_membership,
+        "coset_relation": toy_e8_coset_relation,
     }
     validate_public_material(public_material)
     return public_material
 
 
-def make_toy_e8_secret_material(public_material, sigma_sign=SIGMA_SIGN):
+def make_toy_e8_secret_material(public_material, sigma_sign=None, rng=None):
     # This is the toy E8 sampling adapter used by tests and experiments. A
     # real HAWK integration needs to provide its own external secret material.
+    if sigma_sign is None:
+        sigma_sign = public_material.get("sigma_sign", SIGMA_SIGN)
     secret_material = {
         "name": "toy-e8-secret-material",
         "public_material": public_material,
         "sigma_sign": QQ(sigma_sign),
         "sample_w": toy_e8_sample_w,
+        "rng": default_sampler_rng() if rng is None else rng,
     }
     validate_secret_material(secret_material)
     return secret_material
